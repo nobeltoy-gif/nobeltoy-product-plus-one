@@ -35,7 +35,7 @@ async function call(action,payload={}){
   });
 }
 function setTitle(title){$('siteTitle').textContent=title;document.title=title;}
-const showTime=s=>String(s||'').replace('T',' ');
+const showTime=s=>{const value=String(s||'');return /Z$|[+-]\d\d:\d\d$/.test(value)?new Intl.DateTimeFormat('zh-TW',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(value)):value.replace('T',' ');};
 function receiptMarkup(c,o,code=''){
   const rows=(o.items||[]).filter(item=>Number(item.qty)>0).map(item=>{
     const p=c.products.find(p=>p.id===item.productId),name=item.name||p?.name||'已移除商品';
