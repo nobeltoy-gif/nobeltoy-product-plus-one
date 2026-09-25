@@ -35,3 +35,19 @@ async function call(action,payload={}){
   });
 }
 function setTitle(title){$('siteTitle').textContent=title;document.title=title;}
+const showTime=s=>String(s||'').replace('T',' ');
+function receiptMarkup(c,o,code=''){
+  const rows=(o.items||[]).filter(item=>Number(item.qty)>0).map(item=>{
+    const p=c.products.find(p=>p.id===item.productId),name=item.name||p?.name||'已移除商品';
+    const cost=Number(item.cost??p?.cost??0),qty=Number(item.qty);
+    return `<tr><td>${safe(name)}</td><td class="num">${qty}</td><td class="num">${money(cost)}</td><td class="num">${money(cost*qty)}</td></tr>`;
+  });
+  const total=(o.items||[]).reduce((sum,item)=>{const p=c.products.find(p=>p.id===item.productId);return sum+Number(item.qty||0)*Number(item.cost??p?.cost??0)},0);
+  return `<h2>訂單明細</h2><p><strong>活動：</strong>${safe(c.title)}<br><strong>門市：</strong>${safe(o.store)}<br><strong>訂單編號：</strong>${safe(o.id)}<br><strong>更新時間：</strong>${safe(showTime(o.updated))}</p>${code?`<p><strong>訂單查詢碼：</strong><span class="receipt-code">${safe(code)}</span><br><small>請保存此碼，日後查詢或修改訂單時使用。</small></p>`:''}<div class="scroll"><table><thead><tr><th>商品</th><th class="num">數量</th><th class="num">批價</th><th class="num">小計</th></tr></thead><tbody>${rows.join('')}</tbody></table></div><p class="receipt-total"><strong>合計 ${money(total)}</strong></p><p><strong>備註：</strong><span class="receipt-note">${safe(o.note||'無')}</span></p><p class="muted">此明細為 ${safe(showTime(o.updated))} 的訂單紀錄；修改訂單後請重新下載。</p>`;
+}
+function downloadReceipt(c,o,code=''){
+  const body=receiptMarkup(c,o,code);
+  const html=`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>訂單明細 ${safe(o.store)}</title><style>body{font:16px system-ui,'Noto Sans TC',sans-serif;color:#243447;max-width:850px;margin:32px auto;padding:0 18px}h2{color:#16577a}.receipt-code{font-size:20px;font-weight:bold;overflow-wrap:anywhere}.receipt-total{text-align:right;font-size:20px}.receipt-note{white-space:pre-wrap}table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid #ddd;padding:10px;text-align:left}.num{text-align:right}.muted{color:#66798a;font-size:13px}</style></head><body>${body}</body></html>`;
+  const link=document.createElement('a'),url=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'}));
+  link.href=url;link.download=`${String(c.title+'_'+o.store).replace(/[\\/:*?"<>|]/g,'_')}_訂單明細.html`;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);
+}
